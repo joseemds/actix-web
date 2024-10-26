@@ -551,3 +551,42 @@ pub(crate) fn with_methods(input: TokenStream) -> TokenStream {
         Err(err) => input_and_compile_error(input, err),
     }
 }
+
+pub(crate) fn with_any_method(args: TokenStream, input: TokenStream) -> TokenStream {
+    let path = match syn::parse::<syn::LitStr>(args) {
+        Ok(args) => args,
+        Err(err) => return input_and_compile_error(input, err),
+    };
+
+    let ast = match syn::parse::<syn::ItemFn>(input.clone()) {
+        Ok(ast) => ast,
+        Err(err) => return input_and_compile_error(input, err),
+    };
+
+    let name = ast.sig.ident.clone();
+
+    let resource_name = ast.sig.ident.to_string();
+
+    let vis = &ast.vis;
+
+    let registration = quote! {
+        let __resource = ::actix_web::Resource::new(#path)
+            .name(#resource_name)
+            .to(#name);
+
+        ::actix_web::dev::HttpServiceFactory::register(__resource, __config);
+    };
+
+    quote! {
+        #[allow(non_camel_case_types, missing_docs)]
+        #vis struct #name;
+
+        impl ::actix_web::dev::HttpServiceFactory for #name {
+            fn register(self, __config: &mut actix_web::dev::AppService){
+                #ast
+                #registration
+            }
+        }
+    }
+    .into()
+}

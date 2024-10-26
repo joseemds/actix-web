@@ -26,4 +26,6 @@ fn compile_macros() {
     t.pass("tests/trybuild/docstring-ok.rs");
 
     t.pass("tests/trybuild/test-runtime.rs");
+
+    t.pass("tests/trybuild/route-any-method.rs")
 }

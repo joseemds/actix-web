@@ -11,7 +11,7 @@ use actix_web::{
     web, App, Error, HttpRequest, HttpResponse, Responder,
 };
 use actix_web_codegen::{
-    connect, delete, get, head, options, patch, post, put, route, routes, trace,
+    any, connect, delete, get, head, options, patch, post, put, route, routes, trace,
 };
 use futures_core::future::LocalBoxFuture;
 
@@ -212,6 +212,11 @@ async fn get_wrap(_: web::Path<String>) -> impl Responder {
     HttpResponse::Ok()
 }
 
+#[any("/")]
+async fn any_method(_: web::Path<String>) -> impl Responder {
+    HttpResponse::Ok()
+}
+
 /// Using expression, not just path to type, in wrap attribute.
 ///
 /// Regression from <https://github.com/actix/actix-web/issues/3118>.
@@ -383,4 +388,46 @@ async fn test_wrap() {
     let body = response.body().await.unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
     assert!(body.contains("wrong number of parameters"));
+}
+
+#[actix_web::test]
+async fn test_any() {
+    let srv = actix_test::start(|| App::new().service(any_method));
+    let request = srv.request(http::Method::GET, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+
+    let request = srv.request(http::Method::HEAD, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+
+    let request = srv.request(http::Method::CONNECT, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+
+    let request = srv.request(http::Method::OPTIONS, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+
+    let request = srv.request(http::Method::TRACE, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+
+    let request = srv.request(http::Method::PATCH, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+
+    let request = srv.request(http::Method::PUT, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+    assert_eq!(response.status(), http::StatusCode::CREATED);
+
+    let request = srv.request(http::Method::POST, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
+    assert_eq!(response.status(), http::StatusCode::NO_CONTENT);
+
+    let request = srv.request(http::Method::GET, srv.url("/test"));
+    let response = request.send().await.unwrap();
+    assert!(response.status().is_success());
 }

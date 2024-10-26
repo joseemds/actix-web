@@ -233,6 +233,11 @@ pub fn scope(args: TokenStream, input: TokenStream) -> TokenStream {
     scope::with_scope(args, input)
 }
 
+#[proc_macro_attribute]
+pub fn any(args: TokenStream, input: TokenStream) -> TokenStream {
+    route::with_any_method(args, input)
+}
+
 /// Marks async main function as the Actix Web system entry-point.
 ///
 /// Note that Actix Web also works under `#[tokio::main]` since version 4.0. However, this macro is
